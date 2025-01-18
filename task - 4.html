@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #9b9b9d;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+            padding: 20px;
+        }
+        .app-container {
+            max-width: 700px;
+            margin-top: 100px;
+            background-color: #bbe9ef;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .task-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .task-input input {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .task-lists {
+            margin-top: 20px;
+        }
+        .task-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .task-item {
+            display: flex;
+            justify-content: space-between;
+            background-color: #f9f9f9;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .task-item.complete {
+            text-decoration: line-through;
+            background-color: #d4edda;
+        }
+        .task-item button {
+            background-color: #007bff;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .task-item button.edit {
+            background-color: #ffc107;
+        }
+        .task-item button.delete {
+            background-color: #dc3545;
+        }
+        button:disabled {
+            background-color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+  <div class="app-container">
+    <h1>To-Do App</h1>
+    <div id="error-message" class="error-message"></div>
+    <div class="task-input">
+      <input type="text" id="taskName" placeholder="Enter task...">
+      <input type="date" id="taskDate">
+      <input type="time" id="taskTime">
+      <button id="addTaskBtn">Add Task</button>
+    </div>
+    <div class="task-lists">
+      <div class="task-list" id="taskListContainer"></div>
+    </div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', loadTasks);
+
+    const addTaskBtn = document.getElementById('addTaskBtn');
+    const taskNameInput = document.getElementById('taskName');
+    const taskDateInput = document.getElementById('taskDate');
+    const taskTimeInput = document.getElementById('taskTime');
+    const taskListContainer = document.getElementById('taskListContainer');
+    const errorMessage = document.getElementById('error-message'); 
+
+    document.querySelector('.task-input').appendChild(errorMessage);
+
+    addTaskBtn.addEventListener('click', addTask);
+
+    function loadTasks() {
+        const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        taskListContainer.innerHTML = '';
+        tasks.forEach((task, index) => {
+        const taskItem = createTaskElement(task, index);
+        taskListContainer.appendChild(taskItem);
+        });
+    }
+    function addTask() {
+        const taskName = taskNameInput.value.trim();
+        const taskDate = taskDateInput.value;
+        const taskTime = taskTimeInput.value;
+        errorMessage.textContent = '';
+        if (!taskName) {
+            alert('Please enter a task name!');
+            return;
+        }
+        if (!validateDateTime(taskDate, taskTime)) {
+            errorMessage.textContent = 'Error: Please select a future date and time.';
+            return;
+        }
+        const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        const newTask = {
+            name: taskName,
+            date: taskDate,
+            time: taskTime,
+            complete: false
+        };
+        tasks.push(newTask);
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+        loadTasks();
+        clearInputs();
+    }
+    function createTaskElement(task, index) {
+        const taskItem = document.createElement('div');
+        taskItem.classList.add('task-item');
+        if (task.complete) taskItem.classList.add('complete');
+        taskItem.innerHTML = `
+            <div>
+                <strong>${task.name}</strong><br>
+                ${task.date ? `Date: ${task.date}` : ''} ${task.time ? `Time: ${task.time}` : ''}
+            </div>
+            <div>
+                <button class="edit" onclick="editTask(${index})">Edit</button>
+                <button class="complete" onclick="toggleComplete(${index})">Complete</button>
+                <button class="delete" onclick="deleteTask(${index})">Delete</button>
+            </div>
+            `;
+        return taskItem;
+    }
+    function toggleComplete(index) {
+        const tasks = JSON.parse(localStorage.getItem('tasks'));
+        tasks[index].complete = !tasks[index].complete;
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+        loadTasks();
+    }
+    function deleteTask(index) {
+        const tasks = JSON.parse(localStorage.getItem('tasks'));
+        tasks.splice(index, 1);
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+        loadTasks();
+    }
+    function editTask(index) {
+        const tasks = JSON.parse(localStorage.getItem('tasks'));
+        const task = tasks[index];
+        taskNameInput.value = task.name;
+        taskDateInput.value = task.date;
+        taskTimeInput.value = task.time;
+        addTaskBtn.textContent = 'Update Task';
+        addTaskBtn.onclick = function () {
+        updateTask(index);
+        };
+    }
+    function updateTask(index) {
+        const tasks = JSON.parse(localStorage.getItem('tasks'));
+        tasks[index].name = taskNameInput.value.trim();
+        tasks[index].date = taskDateInput.value;
+        tasks[index].time = taskTimeInput.value;
+        errorMessage.textContent = '';
+        if (!validateDateTime(tasks[index].date, tasks[index].time)) {
+            errorMessage.textContent = 'Error: Please select a future date and time.';
+            return;
+        }
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+        loadTasks();
+        clearInputs();
+        addTaskBtn.textContent = 'Add Task';
+        addTaskBtn.onclick = addTask;
+    }
+    function validateDateTime(date, time) {
+        const currentDateTime = new Date();
+        const selectedDateTime = new Date(date + ' ' + time);
+        if (selectedDateTime < currentDateTime) {
+            return false;
+        }
+        return true;
+    }
+    function clearInputs() {
+        taskNameInput.value = '';
+        taskDateInput.value = '';
+        taskTimeInput.value = '';
+    }
+  </script>
+</body>
+</html>
